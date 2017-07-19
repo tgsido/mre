@@ -39,9 +39,6 @@
                     <a class="nav-link active" id="your-meetings-link" href="#">Your meetings</a>
                   </li>
                   <li class="nav-item">
-                    <a class="nav-link" href="#">Meetings around you</a>
-                  </li>
-                  <li class="nav-item">
                     <a class="nav-link" id="signout-button" style="display: none;" href="#">Sign out</a>
                   </li>
 
@@ -115,9 +112,6 @@
 
         <hr>
 
-        <footer>
-          <p>&copy; Sido Inc. 2017</p>
-        </footer>
       </div> <!-- /container -->
 
     </div>
@@ -189,11 +183,49 @@
 
 
           <div class="container">
-            <button id="insert-event-button" >New meeting</button>
-            <form id="mre-input-form">
-              <input id="event-query-input" type="text" placeholder="Type something here..."/>
-              <button id="mre-search-button" type="submit"> Search </button>
-            </form>
+
+            <div class="row">
+              <div class="col-sm-6 home">
+                <h2>Schedule meetings</h2>
+                <button id="insert-event-button" type="button" class="btn btn-primary">Schedule meeting</button>
+                <p> To get started with creating a meeting, click 'Schedule meeting' and fill out the related fields.</p>
+              </div>
+              <div class="col-sm-6 home">
+                <h2>Find and join meetings</h2>
+                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModalLong">Find meetings</button>
+                <p>To find meetings around you, click 'Find meetings' and type in a keyword related to the meeting! </p>
+             </div>
+            </div>
+
+
+
+
+
+
+            <!-- Modal -->
+            <div class="modal fade" id="exampleModalLong" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
+              <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    Search
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                  <div class="modal-body">
+                    <form id="mre-input-form">
+                      <input id="event-query-input" type="text" placeholder="Type meeting keyword here... i.e (GE)"/>
+                      <button id="mre-search-button" type="submit"> Search </button>
+                    </form>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+
 
           </div>
 
@@ -201,9 +233,8 @@
           <div id="newsfeed" class="container">
             <pre id="content" class="inactive"></pre>
             <div id="search-results" class="container inactive">
-              <h1>Search Results:</h1>
               <div id="meetings" class="container">
-
+                <!-- populated with search results -->
               </div>
             </div>
           </div>
@@ -211,10 +242,10 @@
 
 
 
-
     <script type="text/javascript">
       // Client ID and API key from the Developer Console
       var CLIENT_ID = '57138272784-bulo8okotk3vnkktd6glk471np8jsqeb.apps.googleusercontent.com';
+
 
       // Array of API discovery doc URLs for APIs used by the quickstart
       var DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest"];
@@ -312,11 +343,15 @@
           'timeMin': (new Date()).toISOString(),
           'showDeleted': false,
           'singleEvents': true,
-          'maxResults': 10,
+          'maxResults': 20,
           'orderBy': 'startTime'
         }).then(function(response) {
           var events = response.result.items;
           appendPre('Upcoming events:');
+
+            // clear container
+            var pre = document.getElementById('content');
+            pre.innerHTML = '';
 
           if (events.length > 0) {
             for (i = 0; i < events.length; i++) {
@@ -326,21 +361,27 @@
                 when = event.start.date;
               }
 
-              //appendPre(event.summary + ' (' + when + ')')
-              let meetingDiv = document.createElement("div");
+              let newEventSection = document.createElement("section");
+              let meetingName = document.createElement("h1");
+              let meetingLocation = document.createElement('p');
+              let meetingTiming = document.createElement('p');
+              var options = {
+               weekday: "long", year: "numeric", month: "short",
+               day: "numeric", hour: "2-digit", minute: "2-digit"
+              };
 
+             let startDate = new Date(event.start.dateTime);
+             let endDate = new Date(event.end.dateTime);
 
-              let meetingTitleHeader = document.createElement("h1");
-              meetingTitleHeader.textContent = event.summary;
-              console.log('event(' + i +') ' + event.summary);
-              let meetingTime = document.createElement("p");
-              meetingTime.textContent = when;
+              meetingName.textContent = event.summary;
+              meetingLocation.textContent = 'Location: ' + event.location;
+              meetingTiming.textContent = 'Time: ' + startDate.toLocaleTimeString("en-us", options) + ' - ' + endDate.toLocaleTimeString("en-us", options);
 
-              meetingDiv.appendChild(meetingTitleHeader);
-              meetingDiv.appendChild(meetingTime);
+              newEventSection.appendChild(meetingName);
+              newEventSection.appendChild(meetingTiming);
+              newEventSection.appendChild(meetingLocation);
 
-                var pre = document.getElementById('content');
-                pre.appendChild(meetingDiv);
+              pre.appendChild(newEventSection);
 
             }
           } else {
