@@ -118,6 +118,8 @@ class App {
   }
 
   onYourMeetingsLinkClicked(event){
+    this.hideHomeScreen();
+    this.showEventScreen();
     this.showPre();
     this.hideMeetingContainer();
     this.gapi.client.calendar.events.list({
@@ -368,6 +370,8 @@ class App {
 
   showEventScreen(){
     this.eventScreen.classList.remove('inactive');
+    this.hidePre();
+    this.hideMeetingContainer();
   }
 
   hideEventScreen(){
@@ -384,6 +388,8 @@ class App {
 
   showNewMeetingForm(){
     this.newMeetingForm.classList.remove('inactive');
+    this.hidePre();
+    this.hideMeetingContainer();
   }
 
   hideNewMeetingForm(){
