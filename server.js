@@ -39,7 +39,7 @@ async function onSaveMeeting(req,res) {
   console.log('onSaveMeeting dateObj: ' + dateObj);
   const newMeeting = {
     dateObj: dateObj.toString(),
-    meetingTag: meetingTag,
+    meetingTag: meetingTag.toLowerCase(),
     meetingEvent: meetingEvent
   }
   const response = await collection.insertOne(newMeeting);
@@ -59,7 +59,7 @@ async function onGetEvents(req,res) {
   let dateObj = new Date(dateString);
   console.log('dateObj: ' + dateObj);
 
-  let results = await collection.find({ dateObj: { $gte: dateString }, meetingTag: query }).toArray();
+  let results = await collection.find({ dateObj: { $gte: dateString }, meetingTag: query.toLowerCase() }).toArray();
   console.log('numMeetingsFound: ' + results.length);
   res.json(results);
 }
