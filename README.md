@@ -1,2 +1,2 @@
-# Final Project: MongoDB Backend
-# mre
+# Summer Project: MongoDB Backend
+# mre - moving meeting forward
