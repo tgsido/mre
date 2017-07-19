@@ -23,6 +23,7 @@ class App {
     this.onInsertEventClicked = this.onInsertEventClicked.bind(this);
     this.onNewMeetingSubmitted = this.onNewMeetingSubmitted.bind(this);
     this.getTimeZone = this.getTimeZone.bind(this);
+    this.getDateTime = this.getDateTime.bind(this);
 
 
     // show/hide methods
@@ -38,6 +39,8 @@ class App {
     this.hideNewMeetingForm = this.hideNewMeetingForm.bind(this);
     this.showPre = this.showPre.bind(this);
     this.hidePre = this.hidePre.bind(this);
+    this.showMeetingContainer = this.showMeetingContainer.bind(this);
+    this.hideMeetingContainer = this.hideMeetingContainer.bind(this);
 
     this.onMeetingPlaceChanged = this.onMeetingPlaceChanged.bind(this);
     this.onQuerySubmitted = this.onQuerySubmitted.bind(this);
@@ -45,6 +48,7 @@ class App {
     this.onNewMeetingScheduled = this.onNewMeetingScheduled.bind(this);
     this.onNewMeetingClosed = this.onNewMeetingClosed.bind(this);
     this.onYourMeetingsLinkClicked = this.onYourMeetingsLinkClicked.bind(this);
+    this.onBrandLinkClicked = this.onBrandLinkClicked.bind(this);
 
 
     // containers
@@ -72,6 +76,8 @@ class App {
     //nav-links
     this.yourMeetingsLink = document.querySelector('#your-meetings-link');
     this.yourMeetingsLink.addEventListener('click',this.onYourMeetingsLinkClicked);
+    this.brandLink = document.querySelector('#brand');
+    this.brandLink.addEventListener('click',this.onBrandLinkClicked);
 
     // screens
     this.authorizationScreen = document.querySelector('#auth-screen');
@@ -106,8 +112,64 @@ class App {
     /* document.addEventListener('genre-choice-submitted', this.onUserSelectionsSubmitted); */
   }
 
+  onBrandLinkClicked(event){
+    this.hideEventScreen();
+    this.showHomeScreen();
+  }
+
   onYourMeetingsLinkClicked(event){
     this.showPre();
+    this.hideMeetingContainer();
+    this.gapi.client.calendar.events.list({
+      'calendarId': 'primary',
+      'timeMin': (new Date()).toISOString(),
+      'showDeleted': false,
+      'singleEvents': true,
+      'maxResults': 20,
+      'orderBy': 'startTime'
+    }).then(function(response) {
+      var events = response.result.items;
+      appendPre('Upcoming events:');
+
+        // clear container
+        var pre = document.getElementById('content');
+        pre.innerHTML = '';
+
+      if (events.length > 0) {
+        for (i = 0; i < events.length; i++) {
+          var event = events[i];
+          var when = event.start.dateTime;
+          if (!when) {
+            when = event.start.date;
+          }
+
+          let newEventSection = document.createElement("section");
+          let meetingName = document.createElement("h1");
+          let meetingLocation = document.createElement('p');
+          let meetingTiming = document.createElement('p');
+          var options = {
+           weekday: "long", year: "numeric", month: "short",
+           day: "numeric", hour: "2-digit", minute: "2-digit"
+          };
+
+         let startDate = new Date(event.start.dateTime);
+         let endDate = new Date(event.end.dateTime);
+
+          meetingName.textContent = event.summary;
+          meetingLocation.textContent = 'Location: ' + event.location;
+          meetingTiming.textContent = 'Time: ' + startDate.toLocaleTimeString("en-us", options) + ' - ' + endDate.toLocaleTimeString("en-us", options);
+
+          newEventSection.appendChild(meetingName);
+          newEventSection.appendChild(meetingTiming);
+          newEventSection.appendChild(meetingLocation);
+
+          pre.appendChild(newEventSection);
+
+        }
+      } else {
+        appendPre('No upcoming events found.');
+      }
+    });
   }
 
   onNewMeetingClosed(event){
@@ -176,12 +238,30 @@ class App {
     }
   }
 
+  getDateTime(time,timezone){
+    switch (timezone) {
+      case 'America/Los_Angeles':
+        return time + ':00-07:00';
+      case 'America/Denver':
+        return time + ':00-06:00';
+      case 'America/Chicago':
+        return time + ':00-05:00';
+      case 'America/New_York':
+        return time + ':00-04:00';
+      default:
+        return 'not working ...';
+    }
+  }
+
   onMeetingPlaceChanged(){
     this.meetingPlace = this.autocomplete.getPlace();
   }
 
   onNewMeetingSubmitted(event){
     event.preventDefault();
+
+    this.hidePre();
+    this.hideMeetingContainer();
 
     console.log('new meeting been submitted!');
 
@@ -208,10 +288,12 @@ class App {
     let endTime = document.querySelector('#meeting-end-time').value;
     let timezone = this.getTimeZone(meetingTimezone);
     let start = {};
-    start.dateTime = startTime + ':00-07:00';
+    //start.dateTime = startTime + ':00-07:00';
+    start.dateTime = this.getDateTime(startTime,timezone);
     start.timeZone = timezone;
     let end = {};
-    end.dateTime = endTime + ':00-07:00';
+    //end.dateTime = endTime + ':00-07:00';
+    end.dateTime = this.getDateTime(endTime,timezone);
     end.timeZone = timezone;
 
     let meetingAttendee = document.querySelector('#meeting-attendee').value;
@@ -224,12 +306,12 @@ class App {
     let meetingDescription = document.querySelector('#meeting-description').value;
     console.log('meeting-desc' + meetingDescription);
 
-    meetingEvent.summary = meetingTitle;
-    meetingEvent.location = meetingLocation;
-    meetingEvent.description = meetingDescription;
+    if(meetingTitle !== '') meetingEvent.summary = meetingTitle;
+    if(meetingLocation !== '') meetingEvent.location = meetingLocation;
+    if(meetingDescription !== '') meetingEvent.description = meetingDescription;
     meetingEvent.start = start;
     meetingEvent.end = end;
-    meetingEvent.attendees = attendees;
+    if(attendees !== '') meetingEvent.attendees = attendees;
 
 
     meetingEvent.anyoneCanAddSelf = true;
@@ -316,11 +398,21 @@ class App {
     this.contentContainer.classList.add('inactive');
   }
 
+  showMeetingContainer(){
+    this.meetingsContainer.classList.remove('inactive');
+  }
+
+  hideMeetingContainer(){
+    this.meetingsContainer.classList.add('inactive');
+  }
+
   onUserLogOut(event){
     this.hideHomeScreen();
     this.hideEventScreen();
     this.hideNavBar();
     this.showAuthScreen();
+    this.hidePre();
+    this.hideMeetingContainer();
   }
 
   onUserLogIn(event){
@@ -394,6 +486,16 @@ class App {
      return;
    }
 
+   // clear container out
+   this.meetingsContainer.innerHTML = '';
+   this.showMeetingContainer();
+   this.meetingsContainer.classList.add('container');
+
+   // adding searchResultHeader
+   /*
+   let searchResultHeader = document.createElement("h1");
+   searchResultHeader.textContent = 'Search Results:';
+   this.meetingsContainer.appendChild(searchResultHeader);*/
 
    for (var index = json.length - 1; index >= 0; index--) {
      let eventObj = json[index];
@@ -404,10 +506,19 @@ class App {
      let meetingTiming = document.createElement('p');
      let meetingContact = document.createElement('p');
 
-     meetingName.textContent = eventObj.meetingEvent.description;
-     meetingLocation.textContent = eventObj.meetingEvent.location;
-     meetingTiming.textContent = eventObj.meetingEvent.start.dateTime + ' -- ' + eventObj.meetingEvent.end.dateTime;
-     meetingContact.textContent = 'Contact ' + eventObj.meetingEvent.organizer.email + ' for more information';
+     meetingName.textContent = eventObj.meetingEvent.summary;
+     meetingLocation.textContent = 'Location: ' + eventObj.meetingEvent.location;
+
+     var options = {
+      weekday: "long", year: "numeric", month: "short",
+      day: "numeric", hour: "2-digit", minute: "2-digit"
+    };
+
+    let startDate = new Date(eventObj.meetingEvent.start.dateTime);
+    let endDate = new Date(eventObj.meetingEvent.end.dateTime);
+
+     meetingTiming.textContent = 'Time: ' + startDate.toLocaleTimeString("en-us", options) + ' - ' + endDate.toLocaleTimeString("en-us", options);
+     meetingContact.textContent = 'Want to join? Contact ' + eventObj.meetingEvent.organizer.email + ' for more information';
 
 
      newEventSection.appendChild(meetingName);
